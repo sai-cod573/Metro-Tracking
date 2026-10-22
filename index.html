@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetroTrack - Bus Tracking System</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet Map -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 text-white min-h-screen">
+
+<!-- NAVBAR -->
+<header class="bg-slate-800 border-b border-slate-700">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+
+            <h1 class="text-xl font-bold text-indigo-400">
+                <i class="fa-solid fa-bus mr-2"></i>
+                MetroTrack
+            </h1>
+
+            <nav class="flex gap-2">
+
+                <button onclick="showPage('home')"
+                    class="nav-btn bg-indigo-600 px-4 py-2 rounded-lg">
+                    Explore
+                </button>
+
+                <button onclick="showPage('mapPage')"
+                    class="nav-btn bg-slate-700 px-4 py-2 rounded-lg">
+                    Live Map
+                </button>
+
+                <button onclick="showPage('driver')"
+                    class="nav-btn bg-slate-700 px-4 py-2 rounded-lg">
+                    Driver
+                </button>
+
+                <button onclick="showPage('admin')"
+                    class="nav-btn bg-slate-700 px-4 py-2 rounded-lg">
+                    Admin
+                </button>
+
+            </nav>
+        </div>
+    </div>
+</header>
+
+
+<!-- MAIN -->
+<main class="max-w-7xl mx-auto p-6">
+
+    <!-- HOME -->
+    <section id="home">
+
+        <div class="bg-slate-800 p-6 rounded-xl mb-6">
+
+            <h2 class="text-3xl font-bold mb-2">
+                Visakhapatnam Bus Tracking
+            </h2>
+
+            <p class="text-slate-400 mb-5">
+                Search and track city buses.
+            </p>
+
+            <input
+                id="search"
+                oninput="displayBuses()"
+                placeholder="Search Bus Number or Route..."
+                class="w-full md:w-1/2 p-3 rounded-lg bg-slate-900 border border-slate-700">
+
+            <div class="mt-4 flex gap-2">
+
+                <button onclick="setFilter('all')"
+                    class="bg-indigo-600 px-4 py-2 rounded-lg">
+                    All
+                </button>
+
+                <button onclick="setFilter('active')"
+                    class="bg-emerald-600 px-4 py-2 rounded-lg">
+                    Active
+                </button>
+
+                <button onclick="setFilter('inactive')"
+                    class="bg-slate-600 px-4 py-2 rounded-lg">
+                    Inactive
+                </button>
+
+            </div>
+        </div>
+
+        <div id="busList"
+             class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        </div>
+
+    </section>
+
+
+    <!-- MAP -->
+    <section id="mapPage" class="hidden">
+
+        <div class="bg-slate-800 p-5 rounded-xl mb-5">
+
+            <h2 class="text-2xl font-bold mb-2">
+                <i class="fa-solid fa-map-location-dot text-emerald-400"></i>
+                Live Bus Map
+            </h2>
+
+            <p class="text-slate-400">
+                Select a bus to view its location.
+            </p>
+
+        </div>
+
+        <div id="map"
+             class="rounded-xl overflow-hidden">
+        </div>
+
+        <div id="selectedBus"
+             class="bg-slate-800 p-5 rounded-xl mt-5">
+            Select a bus from Explore.
+        </div>
+
+    </section>
+
+
+    <!-- DRIVER -->
+    <section id="driver" class="hidden">
+
+        <div class="max-w-2xl mx-auto bg-slate-800 p-6 rounded-xl">
+
+            <h2 class="text-2xl font-bold mb-5">
+                Driver Portal
+            </h2>
+
+            <p class="text-slate-400 mb-5">
+                Driver: John Doe
+            </p>
+
+            <div id="driverStatus"
+                 class="bg-slate-900 p-4 rounded-lg mb-5">
+                Status: OFF DUTY
+            </div>
+
+            <div class="flex gap-3">
+
+                <button onclick="startTrip()"
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-500 p-3 rounded-lg">
+                    <i class="fa-solid fa-play mr-2"></i>
+                    Start Trip
+                </button>
+
+                <button onclick="endTrip()"
+                    class="flex-1 bg-red-600 hover:bg-red-500 p-3 rounded-lg">
+                    <i class="fa-solid fa-stop mr-2"></i>
+                    End Trip
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ADMIN -->
+    <section id="admin" class="hidden">
+
+        <div class="bg-slate-800 p-6 rounded-xl">
+
+            <h2 class="text-2xl font-bold mb-5">
+                Admin Hub
+            </h2>
+
+            <table class="w-full text-left">
+
+                <thead class="bg-slate-900">
+                    <tr>
+                        <th class="p-3">Bus</th>
+                        <th class="p-3">Route</th>
+                        <th class="p-3">Driver</th>
+                        <th class="p-3">Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="adminTable">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+    // =========================
+    // BUS DATA
+    // =========================
+
+    const buses = [
+
+        {
+            id: 1,
+            number: "BUS-101",
+            route: "Gajuwaka - Maddilapalem",
+            driver: "John Doe",
+            status: "ACTIVE",
+            lat: 17.6902,
+            lng: 83.2089
+        },
+
+        {
+            id: 2,
+            number: "BUS-202",
+            route: "MVP Colony - RTC Complex",
+            driver: "Sarah Smith",
+            status: "ACTIVE",
+            lat: 17.7447,
+            lng: 83.3312
+        },
+
+        {
+            id: 3,
+            number: "BUS-303",
+            route: "NAD Junction - Beach Road",
+            driver: "Ravi Kumar",
+            status: "INACTIVE",
+            lat: 17.7285,
+            lng: 83.3054
+        }
+
+    ];
+
+
+    let currentFilter = "all";
+    let map = null;
+    let markers = {};
+
+
+    // =========================
+    // PAGE SWITCHING
+    // =========================
+
+    function showPage(page) {
+
+        const pages = [
+            "home",
+            "mapPage",
+            "driver",
+            "admin"
+        ];
+
+        pages.forEach(function(p) {
+
+            document.getElementById(p)
+                .classList.add("hidden");
+
+        });
+
+        document.getElementById(page)
+            .classList.remove("hidden");
+
+
+        if (page === "mapPage") {
+
+            setTimeout(function() {
+
+                initMap();
+
+                if (map) {
+                    map.invalidateSize();
+                }
+
+            }, 200);
+
+        }
+
+    }
+
+
+    // =========================
+    // FILTER
+    // =========================
+
+    function setFilter(filter) {
+
+        currentFilter = filter;
+
+        displayBuses();
+
+    }
+
+
+    // =========================
+    // SEARCH + BUS CARDS
+    // =========================
+
+    function displayBuses() {
+
+        const list = document.getElementById("busList");
+
+        const searchText =
+            document.getElementById("search")
+            .value
+            .toLowerCase();
+
+
+        const filtered = buses.filter(function(bus) {
+
+            const searchMatch =
+                bus.number.toLowerCase()
+                    .includes(searchText) ||
+
+                bus.route.toLowerCase()
+                    .includes(searchText);
+
+
+            const filterMatch =
+                currentFilter === "all" ||
+
+                (currentFilter === "active"
+                    && bus.status === "ACTIVE") ||
+
+                (currentFilter === "inactive"
+                    && bus.status === "INACTIVE");
+
+
+            return searchMatch && filterMatch;
+
+        });
+
+
+        list.innerHTML = "";
+
+
+        filtered.forEach(function(bus) {
+
+            const statusColor =
+                bus.status === "ACTIVE"
+                ? "text-emerald-400"
+                : "text-slate-400";
+
+
+            list.innerHTML += `
+
+                <div class="bg-slate-800
+                            border border-slate-700
+                            rounded-xl
+                            p-5">
+
+                    <div class="flex justify-between">
+
+                        <h3 class="text-xl font-bold">
+                            ${bus.number}
+                        </h3>
+
+                        <span class="${statusColor}">
+                            ${bus.status}
+                        </span>
+
+                    </div>
+
+                    <p class="text-slate-400 mt-2">
+                        ${bus.route}
+                    </p>
+
+                    <p class="text-slate-400 mt-2">
+                        Driver: ${bus.driver}
+                    </p>
+
+                    <p class="text-slate-400 mt-2">
+                        Location:
+                        ${bus.lat.toFixed(4)},
+                        ${bus.lng.toFixed(4)}
+                    </p>
+
+                    <button
+                        onclick="trackBus(${bus.id})"
+                        class="w-full bg-indigo-600
+                               hover:bg-indigo-500
+                               p-2 rounded-lg mt-4">
+
+                        <i class="fa-solid fa-location-dot mr-2"></i>
+                        Track Live
+
+                    </button>
+
+                </div>
+
+            `;
+
+        });
+
+    }
+
+
+    // =========================
+    // MAP
+    // =========================
+
+    function initMap() {
+
+        if (map !== null) {
+            return;
+        }
+
+
+        map = L.map("map").setView(
+            [17.7285, 83.3054],
+            12
+        );
+
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution: "© OpenStreetMap"
+            }
+        ).addTo(map);
+
+
+        buses.forEach(function(bus) {
+
+            const marker =
+                L.marker([bus.lat, bus.lng])
+                .addTo(map)
+                .bindPopup(
+                    "<b>" + bus.number + "</b><br>" +
+                    bus.route
+                );
+
+
+            marker.on("click", function() {
+
+                selectBus(bus.id);
+
+            });
+
+
+            markers[bus.id] = marker;
+
+        });
+
+    }
+
+
+    // =========================
+    // TRACK BUS
+    // =========================
+
+    function trackBus(id) {
+
+        showPage("mapPage");
+
+        setTimeout(function() {
+
+            initMap();
+
+            selectBus(id);
+
+        }, 300);
+
+    }
+
+
+    function selectBus(id) {
+
+        const bus =
+            buses.find(function(b) {
+                return b.id === id;
+            });
+
+
+        if (!bus) {
+            return;
+        }
+
+
+        document.getElementById("selectedBus")
+            .innerHTML = `
+
+                <h3 class="text-xl font-bold">
+                    ${bus.number}
+                </h3>
+
+                <p class="text-slate-400">
+                    Route: ${bus.route}
+                </p>
+
+                <p class="text-slate-400">
+                    Driver: ${bus.driver}
+                </p>
+
+                <p class="text-emerald-400">
+                    Status: ${bus.status}
+                </p>
+
+                <p class="text-blue-400 font-mono">
+                    Latitude: ${bus.lat.toFixed(5)}
+                    <br>
+                    Longitude: ${bus.lng.toFixed(5)}
+                </p>
+
+            `;
+
+
+        if (map && markers[id]) {
+
+            map.setView(
+                [bus.lat, bus.lng],
+                15
+            );
+
+            markers[id].openPopup();
+
+        }
+
+    }
+
+
+    // =========================
+    // DRIVER
+    // =========================
+
+    function startTrip() {
+
+        document.getElementById("driverStatus")
+            .innerHTML =
+            "<span class='text-emerald-400'>" +
+            "Status: TRIP ACTIVE / GPS BROADCASTING" +
+            "</span>";
+
+        buses[0].status = "ACTIVE";
+
+        displayBuses();
+        renderAdmin();
+
+    }
+
+
+    function endTrip() {
+
+        document.getElementById("driverStatus")
+            .innerHTML =
+            "<span class='text-red-400'>" +
+            "Status: TRIP ENDED" +
+            "</span>";
+
+        renderAdmin();
+
+    }
+
+
+    // =========================
+    // ADMIN TABLE
+    // =========================
+
+    function renderAdmin() {
+
+        const table =
+            document.getElementById("adminTable");
+
+        table.innerHTML = "";
+
+
+        buses.forEach(function(bus) {
+
+            table.innerHTML += `
+
+                <tr class="border-b border-slate-700">
+
+                    <td class="p-3">
+                        ${bus.number}
+                    </td>
+
+                    <td class="p-3">
+                        ${bus.route}
+                    </td>
+
+                    <td class="p-3">
+                        ${bus.driver}
+                    </td>
+
+                    <td class="p-3">
+                        ${bus.status}
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
+
+    }
+
+
+    // =========================
+    // START APPLICATION
+    // =========================
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function() {
+
+            displayBuses();
+
+            renderAdmin();
+
+        }
+    );
+
+
+</script>
+
+</body>
+</html>
